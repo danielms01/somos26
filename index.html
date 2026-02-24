@@ -9,157 +9,144 @@
     <style>
         body { background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        select { background-color: #1e293b; border: 1px solid #334155; color: white; }
-        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+        .status-badge { background: #1e293b; border: 1px solid #334155; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans">
+<body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-blue-400">Acompanhamento Regional CE RN PB</h1>
-                <p class="text-slate-400">Dashboard Estratégico de Eventos e Consultoria</p>
+                <p class="text-slate-400">Dashboard de Gestão e Eventos</p>
             </div>
             
-            <div class="flex items-center gap-3 glass-card p-4 rounded-xl">
-                <label for="month-filter" class="font-semibold text-blue-300">Filtrar por Mês:</label>
-                <select id="month-filter" class="rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="flex items-center gap-3 glass-card p-4 rounded-xl border-l-4 border-blue-500">
+                <label class="font-bold text-blue-300">Filtrar Mês:</label>
+                <select id="month-filter" class="bg-slate-800 text-white rounded p-2 outline-none border border-slate-600">
                     <option value="Todos">Todos os Meses</option>
-                    </select>
+                </select>
             </div>
         </header>
 
         <div class="grid lg:grid-cols-2 gap-8">
-            
-            <section class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+            <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-blue-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold flex items-center gap-2">📅 Agenda Mensal</h2>
+                    <h2 class="text-xl font-bold">📅 Agenda Mensal</h2>
                 </div>
-                <div class="p-4 overflow-x-auto">
+                <div class="p-2 overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                            <tr class="text-slate-400 border-b border-slate-700">
                                 <th class="p-3">Data</th>
                                 <th class="p-3">Cidade</th>
                                 <th class="p-3">Consultor</th>
                             </tr>
                         </thead>
-                        <tbody id="table-agenda" class="text-sm">
-                            </tbody>
+                        <tbody id="table-agenda" class="divide-y divide-slate-800"></tbody>
                     </table>
                 </div>
             </section>
 
-            <section class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+            <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-emerald-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold flex items-center gap-2">🚀 Acompanhamento Evento</h2>
+                    <h2 class="text-xl font-bold">🚀 Acompanhamento Evento</h2>
                 </div>
-                <div class="p-4 overflow-x-auto">
+                <div class="p-2 overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                            <tr class="text-slate-400 border-b border-slate-700">
                                 <th class="p-3">Evento</th>
-                                <th class="p-3">Data</th>
-                                <th class="p-3">Dias para o evento</th>
-                                <th class="p-3">Data de corte</th>
-                                <th class="p-3">Inscritos</th>
+                                <th class="p-3 text-center">Inscritos</th>
+                                <th class="p-3">Status</th>
                             </tr>
                         </thead>
-                        <tbody id="table-evento" class="text-sm">
-                            </tbody>
+                        <tbody id="table-evento" class="divide-y divide-slate-800"></tbody>
                     </table>
                 </div>
             </section>
-
         </div>
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO DOS LINKS CSV ---
+        // --- COLOQUE SEUS LINKS ENTRE AS ASPAS ABAIXO ---
         const URL_AGENDA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2SICp2ke9xGZGk0HYnQ5Sc6gk-uBoM21tdm6kryxlyZb7Yahzon53gNyEoAN-DuJqR08vCrNBgEzM/pub?output=csv';
         const URL_EVENTO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgIUlaVDZJXI4C04Mnm9SP6Mpjf8j1kZzKCf2ceyK1QHsXTOJS2XcETo0XcQW-YuW49pC4B-iBytVd/pub?output=csv';
 
-        let dadosAgenda = [];
-        let dadosEvento = [];
+        let globalAgenda = [];
+        let globalEvento = [];
 
-        async function init() {
-            await Promise.all([
-                fetchData(URL_AGENDA, (data) => { dadosAgenda = data; }),
-                fetchData(URL_EVENTO, (data) => { dadosEvento = data; })
-            ]);
-            
-            povoarFiltroMes();
-            renderDashboards('Todos');
-        }
-
-        function fetchData(url, callback) {
-            return new Promise((resolve) => {
-        Papa.parse(url, {
-            download: true,
-            header: true,
-            complete: (results) => {
-                if(results.data.length === 0) alert("Planilha vazia ou link inválido!");
-                callback(results.data.filter(row => row.MÊS));
-                resolve();
-            },
-            error: (err) => {
-                alert("Erro ao ler planilha: " + err);
-                resolve()
-                    }
-                });
+        // Função para normalizar as chaves dos objetos (remove espaços e acentos básicos)
+        function normalizeData(array) {
+            return array.map(item => {
+                const newItem = {};
+                for (let key in item) {
+                    const normalizedKey = key.trim().toUpperCase();
+                    newItem[normalizedKey] = item[key];
+                }
+                return newItem;
             });
         }
 
-        function povoarFiltroMes() {
+        async function loadAll() {
+            try {
+                const [res1, res2] = await Promise.all([
+                    new Promise(res => Papa.parse(URL_AGENDA, {download: true, header: true, complete: res})),
+                    new Promise(res => Papa.parse(URL_EVENTO, {download: true, header: true, complete: res}))
+                ]);
+
+                globalAgenda = normalizeData(res1.data);
+                globalEvento = normalizeData(res2.data);
+
+                updateFilter();
+                render('Todos');
+            } catch (e) {
+                console.error("Erro ao carregar:", e);
+            }
+        }
+
+        function updateFilter() {
             const select = document.getElementById('month-filter');
-            const meses = [...new Set([...dadosAgenda.map(d => d.MÊS), ...dadosEvento.map(d => d.MÊS)])];
-            meses.sort().forEach(mes => {
+            const meses = [...new Set([...globalAgenda.map(i => i.MÊS), ...globalEvento.map(i => i.MÊS)])].filter(Boolean);
+            meses.sort().forEach(m => {
                 const opt = document.createElement('option');
-                opt.value = mes;
-                opt.innerText = mes;
+                opt.value = m; opt.innerText = m;
                 select.appendChild(opt);
             });
         }
 
-        function renderDashboards(mesSelecionado) {
-            // Render Agenda
-            const agendaCorpo = document.getElementById('table-agenda');
-            agendaCorpo.innerHTML = '';
-            dadosAgenda
-                .filter(item => mesSelecionado === 'Todos' || item.MÊS === mesSelecionado)
-                .forEach(item => {
-                    agendaCorpo.innerHTML += `
-                        <tr class="border-b border-slate-800 hover:bg-slate-800/40">
-                            <td class="p-3 text-blue-300 font-mono">${item.Data}</td>
-                            <td class="p-3">${item.Cidade}</td>
-                            <td class="p-3 text-slate-400">${item.Consultor}</td>
-                        </tr>
-                    `;
-                });
+        function render(mes) {
+            const agendaTbody = document.getElementById('table-agenda');
+            const eventoTbody = document.getElementById('table-evento');
+            
+            agendaTbody.innerHTML = '';
+            eventoTbody.innerHTML = '';
 
-            // Render Eventos
-            const eventoCorpo = document.getElementById('table-evento');
-            eventoCorpo.innerHTML = '';
-            dadosEvento
-                .filter(item => mesSelecionado === 'Todos' || item.MÊS === mesSelecionado)
-                .forEach(item => {
-                    eventoCorpo.innerHTML += `
-                        <tr class="border-b border-slate-800 hover:bg-slate-800/40">
-                            <td class="p-3 font-bold text-emerald-400">${item.Evento}</td>
-                            <td class="p-3 text-xs text-slate-400">${item.Data}<br><span class="text-orange-400">Corte: ${item["DATA DE CORTE"]}</span></td>
-                            <td class="p-3 font-mono">${item["DIAS PARA O EVENTO"]}</td>
-                            <td class="p-3"><span class="bg-emerald-900 text-emerald-200 px-3 py-1 rounded-full">${item.Inscritos}</span></td>
-                        </tr>
-                    `;
-                });
+            // Render Agenda
+            globalAgenda.filter(i => (mes === 'Todos' || i.MÊS === mes) && i.DATA).forEach(i => {
+                agendaTbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-mono text-blue-400">${i.DATA}</td>
+                        <td class="p-3 font-medium">${i.CIDADE || '-'}</td>
+                        <td class="p-3 text-slate-400 text-sm">${i.CONSULTOR || '-'}</td>
+                    </tr>`;
+            });
+
+            // Render Evento
+            globalEvento.filter(i => (mes === 'Todos' || i.MÊS === mes) && i.EVENTO).forEach(i => {
+                eventoTbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-bold text-emerald-400">${i.EVENTO}<br><span class="text-[10px] text-slate-500">CORTE: ${i['DATA DE CORTE'] || '-'}</span></td>
+                        <td class="p-3 text-center"><span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold">${i.INSCRITOS || '0'}</span></td>
+                        <td class="p-3 text-xs text-slate-300">Faltam: <b>${i['DIAS PARA O EVENTO'] || '0'}</b> dias</td>
+                    </tr>`;
+            });
         }
 
-        document.getElementById('month-filter').addEventListener('change', (e) => {
-        renderDashboards(e.target.value);
-        });
-
-        init();
+        document.getElementById('month-filter').onchange = (e) => render(e.target.value);
+        
+        if(URL_AGENDA.includes('http')) loadAll();
+        else alert("Por favor, insira os links das planilhas no código!");
     </script>
 </body>
 </html>
