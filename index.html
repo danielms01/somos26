@@ -9,7 +9,7 @@
     <style>
         body { background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .status-badge { background: #1e293b; border: 1px solid #334155; }
+        tr:nth-child(even) { background-color: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -18,29 +18,31 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-blue-400">Acompanhamento Regional CE RN PB</h1>
-                <p class="text-slate-400">Dashboard de Gestão e Eventos</p>
+                <p class="text-slate-400">Dashboard de Gestão Integrada</p>
             </div>
             
             <div class="flex items-center gap-3 glass-card p-4 rounded-xl border-l-4 border-blue-500">
-                <label class="font-bold text-blue-300">Filtrar Mês:</label>
-                <select id="month-filter" class="bg-slate-800 text-white rounded p-2 outline-none border border-slate-600">
-                    <option value="Todos">Todos os Meses</option>
+                <label class="font-bold text-blue-300">Mês de Referência:</label>
+                <select id="month-filter" class="bg-slate-800 text-white rounded p-2 outline-none border border-slate-600 cursor-pointer">
+                    <option value="Todos">Ver Todos</option>
                 </select>
             </div>
         </header>
 
-        <div class="grid lg:grid-cols-2 gap-8">
+        <div class="grid lg:grid-cols-1 gap-8">
+            
             <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-blue-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold">📅 Agenda Mensal</h2>
+                    <h2 class="text-xl font-bold flex items-center gap-2">📅 Agenda Mensal</h2>
                 </div>
-                <div class="p-2 overflow-x-auto">
+                <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-700">
-                                <th class="p-3">Data</th>
-                                <th class="p-3">Cidade</th>
-                                <th class="p-3">Consultor</th>
+                            <tr class="text-slate-400 border-b border-slate-700 bg-slate-800/50">
+                                <th class="p-4">Data</th>
+                                <th class="p-4">Mês</th>
+                                <th class="p-4">Cidade</th>
+                                <th class="p-4">Consultor</th>
                             </tr>
                         </thead>
                         <tbody id="table-agenda" class="divide-y divide-slate-800"></tbody>
@@ -50,39 +52,46 @@
 
             <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-emerald-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold">🚀 Acompanhamento Evento</h2>
+                    <h2 class="text-xl font-bold flex items-center gap-2">🚀 Acompanhamento Evento</h2>
                 </div>
-                <div class="p-2 overflow-x-auto">
+                <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-700">
-                                <th class="p-3">Evento</th>
-                                <th class="p-3 text-center">Inscritos</th>
-                                <th class="p-3">Status</th>
+                            <tr class="text-slate-400 border-b border-slate-700 bg-slate-800/50">
+                                <th class="p-4">Evento</th>
+                                <th class="p-4 text-center">Data Evento</th>
+                                <th class="p-4 text-center">Cidade</th>
+                                <th class="p-4 text-center">Dias Restantes</th>
+                                <th class="p-4 text-center">Data de Corte</th>
+                                <th class="p-4 text-center">Inscritos</th>
                             </tr>
                         </thead>
-                        <tbody id="table-evento" class="divide-y divide-slate-800"></tbody>
+                        <tbody id="table-evento" class="divide-y divide-slate-800 text-sm"></tbody>
                     </table>
                 </div>
             </section>
+
         </div>
     </div>
 
     <script>
-        // --- COLOQUE SEUS LINKS ENTRE AS ASPAS ABAIXO ---
+        // --- INSIRA SEUS LINKS CSV ABAIXO ---
         const URL_AGENDA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2SICp2ke9xGZGk0HYnQ5Sc6gk-uBoM21tdm6kryxlyZb7Yahzon53gNyEoAN-DuJqR08vCrNBgEzM/pub?output=csv';
         const URL_EVENTO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgIUlaVDZJXI4C04Mnm9SP6Mpjf8j1kZzKCf2ceyK1QHsXTOJS2XcETo0XcQW-YuW49pC4B-iBytVd/pub?output=csv';
 
         let globalAgenda = [];
         let globalEvento = [];
 
-        // Função para normalizar as chaves dos objetos (remove espaços e acentos básicos)
+        function normalizeKey(key) {
+            return key.trim().toUpperCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+        }
+
         function normalizeData(array) {
             return array.map(item => {
                 const newItem = {};
                 for (let key in item) {
-                    const normalizedKey = key.trim().toUpperCase();
-                    newItem[normalizedKey] = item[key];
+                    newItem[normalizeKey(key)] = item[key];
                 }
                 return newItem;
             });
@@ -101,13 +110,13 @@
                 updateFilter();
                 render('Todos');
             } catch (e) {
-                console.error("Erro ao carregar:", e);
+                console.error("Erro no carregamento:", e);
             }
         }
 
         function updateFilter() {
             const select = document.getElementById('month-filter');
-            const meses = [...new Set([...globalAgenda.map(i => i.MÊS), ...globalEvento.map(i => i.MÊS)])].filter(Boolean);
+            const meses = [...new Set([...globalAgenda.map(i => i.MES), ...globalEvento.map(i => i.MES)])].filter(Boolean);
             meses.sort().forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m; opt.innerText = m;
@@ -122,31 +131,43 @@
             agendaTbody.innerHTML = '';
             eventoTbody.innerHTML = '';
 
-            // Render Agenda
-            globalAgenda.filter(i => (mes === 'Todos' || i.MÊS === mes) && i.DATA).forEach(i => {
+            // Render Agenda Mensal
+            globalAgenda.filter(i => (mes === 'Todos' || i.MES === mes) && i.DATA).forEach(i => {
                 agendaTbody.innerHTML += `
                     <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-3 font-mono text-blue-400">${i.DATA}</td>
-                        <td class="p-3 font-medium">${i.CIDADE || '-'}</td>
-                        <td class="p-3 text-slate-400 text-sm">${i.CONSULTOR || '-'}</td>
+                        <td class="p-4 font-mono text-blue-400">${i.DATA}</td>
+                        <td class="p-4 text-slate-400">${i.MES || '-'}</td>
+                        <td class="p-4 font-medium">${i.CIDADE || '-'}</td>
+                        <td class="p-4 text-slate-300 italic">${i.CONSULTOR || '-'}</td>
                     </tr>`;
             });
 
-            // Render Evento
-            globalEvento.filter(i => (mes === 'Todos' || i.MÊS === mes) && i.EVENTO).forEach(i => {
+            // Render Acompanhamento Evento (Com as novas colunas solicitadas)
+            globalEvento.filter(i => (mes === 'Todos' || i.MES === mes) && i.EVENTO).forEach(i => {
                 eventoTbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-3 font-bold text-emerald-400">${i.EVENTO}<br><span class="text-[10px] text-slate-500">CORTE: ${i['DATA DE CORTE'] || '-'}</span></td>
-                        <td class="p-3 text-center"><span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold">${i.INSCRITOS || '0'}</span></td>
-                        <td class="p-3 text-xs text-slate-300">Faltam: <b>${i['DIAS PARA O EVENTO'] || '0'}</b> dias</td>
+                    <tr class="hover:bg-slate-800/50 transition border-b border-slate-800">
+                        <td class="p-4 font-bold text-emerald-400">${i.EVENTO}</td>
+                        <td class="p-4 text-center font-mono">${i.DATA || '-'}</td>
+                        <td class="p-4 text-center">${i.CIDADE || '-'}</td>
+                        <td class="p-4 text-center">
+                            <span class="bg-blue-900/30 text-blue-300 px-2 py-1 rounded border border-blue-800">
+                                ${i['DIAS PARA O EVENTO'] || '0'} dias
+                            </span>
+                        </td>
+                        <td class="p-4 text-center text-orange-400 font-semibold">${i['DATA DE CORTE'] || '-'}</td>
+                        <td class="p-4 text-center">
+                            <span class="bg-emerald-500 text-slate-900 px-3 py-1 rounded-full font-bold">
+                                ${i.INSCRITOS || '0'}
+                            </span>
+                        </td>
                     </tr>`;
             });
         }
 
         document.getElementById('month-filter').onchange = (e) => render(e.target.value);
         
-        if(URL_AGENDA.includes('http')) loadAll();
-        else alert("Por favor, insira os links das planilhas no código!");
+        if(URL_AGENDA.startsWith('http')) loadAll();
+        else alert("Atenção: Insira os links CSV dentro das aspas no código!");
     </script>
 </body>
 </html>
