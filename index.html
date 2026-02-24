@@ -95,12 +95,17 @@
 
         function fetchData(url, callback) {
             return new Promise((resolve) => {
-                Papa.parse(url, {
-                    download: true,
-                    header: true,
-                    complete: (results) => {
-                        callback(results.data.filter(row => row.MÊS)); // Filtra linhas vazias
-                        resolve();
+        Papa.parse(url, {
+            download: true,
+            header: true,
+            complete: (results) => {
+                if(results.data.length === 0) alert("Planilha vazia ou link inválido!");
+                callback(results.data.filter(row => row.MÊS));
+                resolve();
+            },
+            error: (err) => {
+                alert("Erro ao ler planilha: " + err);
+                resolve()
                     }
                 });
             });
