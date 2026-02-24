@@ -10,6 +10,7 @@
         body { background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         tr:nth-child(even) { background-color: rgba(255,255,255,0.02); }
+        .link-hover:hover { color: #60a5fa; text-decoration: underline; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -33,7 +34,7 @@
             
             <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-blue-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold flex items-center gap-2">📅 Agenda Mensal</h2>
+                    <h2 class="text-xl font-bold flex items-center gap-2 text-blue-100">📅 Agenda Mensal</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
@@ -52,13 +53,13 @@
 
             <section class="glass-card rounded-2xl shadow-2xl overflow-hidden">
                 <div class="bg-emerald-600/20 p-4 border-b border-slate-700">
-                    <h2 class="text-xl font-bold flex items-center gap-2">🚀 Acompanhamento Evento</h2>
+                    <h2 class="text-xl font-bold flex items-center gap-2 text-emerald-100">🚀 Acompanhamento Evento</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
                             <tr class="text-slate-400 border-b border-slate-700 bg-slate-800/50">
-                                <th class="p-4">Evento</th>
+                                <th class="p-4 border-r border-slate-700/30">Evento</th>
                                 <th class="p-4 text-center">Data Evento</th>
                                 <th class="p-4 text-center">Cidade</th>
                                 <th class="p-4 text-center">Dias Restantes</th>
@@ -71,6 +72,23 @@
                 </div>
             </section>
 
+            <section class="glass-card rounded-2xl shadow-2xl overflow-hidden border-t-2 border-amber-500/30">
+                <div class="bg-amber-600/20 p-4 border-b border-slate-700">
+                    <h2 class="text-xl font-bold flex items-center gap-2 text-amber-100">🔗 Links Importantes</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 border-b border-slate-700 bg-slate-800/50">
+                                <th class="p-4 w-1/3">Acesso</th>
+                                <th class="p-4">Link para Acesso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-links" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+
         </div>
     </div>
 
@@ -78,13 +96,16 @@
         // --- INSIRA SEUS LINKS CSV ABAIXO ---
         const URL_AGENDA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2SICp2ke9xGZGk0HYnQ5Sc6gk-uBoM21tdm6kryxlyZb7Yahzon53gNyEoAN-DuJqR08vCrNBgEzM/pub?output=csv';
         const URL_EVENTO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgIUlaVDZJXI4C04Mnm9SP6Mpjf8j1kZzKCf2ceyK1QHsXTOJS2XcETo0XcQW-YuW49pC4B-iBytVd/pub?output=csv';
+        const URL_LINKS  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfILvxtEa9tb1pb5aOZPtHC8gDhlwwtzaNett1iL7yagoIUyaUbvUGOexN4YUZOBC8-bY8qTG5QP5v/pub?output=csv'; // Novo Link
 
         let globalAgenda = [];
         let globalEvento = [];
+        let globalLinks  = [];
 
         function normalizeKey(key) {
+            if (!key) return "";
             return key.trim().toUpperCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
         function normalizeData(array) {
@@ -99,13 +120,15 @@
 
         async function loadAll() {
             try {
-                const [res1, res2] = await Promise.all([
+                const [res1, res2, res3] = await Promise.all([
                     new Promise(res => Papa.parse(URL_AGENDA, {download: true, header: true, complete: res})),
-                    new Promise(res => Papa.parse(URL_EVENTO, {download: true, header: true, complete: res}))
+                    new Promise(res => Papa.parse(URL_EVENTO, {download: true, header: true, complete: res})),
+                    new Promise(res => Papa.parse(URL_LINKS,  {download: true, header: true, complete: res}))
                 ]);
 
                 globalAgenda = normalizeData(res1.data);
                 globalEvento = normalizeData(res2.data);
+                globalLinks  = normalizeData(res3.data);
 
                 updateFilter();
                 render('Todos');
@@ -127,26 +150,28 @@
         function render(mes) {
             const agendaTbody = document.getElementById('table-agenda');
             const eventoTbody = document.getElementById('table-evento');
+            const linksTbody  = document.getElementById('table-links');
             
             agendaTbody.innerHTML = '';
             eventoTbody.innerHTML = '';
+            linksTbody.innerHTML  = '';
 
-            // Render Agenda Mensal
+            // Agenda Mensal
             globalAgenda.filter(i => (mes === 'Todos' || i.MES === mes) && i.DATA).forEach(i => {
                 agendaTbody.innerHTML += `
                     <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-4 font-mono text-blue-400">${i.DATA}</td>
+                        <td class="p-4 font-mono text-blue-400 font-bold">${i.DATA}</td>
                         <td class="p-4 text-slate-400">${i.MES || '-'}</td>
                         <td class="p-4 font-medium">${i.CIDADE || '-'}</td>
                         <td class="p-4 text-slate-300 italic">${i.CONSULTOR || '-'}</td>
                     </tr>`;
             });
 
-            // Render Acompanhamento Evento (Com as novas colunas solicitadas)
+            // Acompanhamento Evento
             globalEvento.filter(i => (mes === 'Todos' || i.MES === mes) && i.EVENTO).forEach(i => {
                 eventoTbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/50 transition border-b border-slate-800">
-                        <td class="p-4 font-bold text-emerald-400">${i.EVENTO}</td>
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-4 font-bold text-emerald-400 border-r border-slate-700/30">${i.EVENTO}</td>
                         <td class="p-4 text-center font-mono">${i.DATA || '-'}</td>
                         <td class="p-4 text-center">${i.CIDADE || '-'}</td>
                         <td class="p-4 text-center">
@@ -162,12 +187,24 @@
                         </td>
                     </tr>`;
             });
+
+            // Links Importantes (Sempre visíveis, não filtram por mês)
+            globalLinks.filter(i => i.ACESSO).forEach(i => {
+                linksTbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-4 font-bold text-amber-400 uppercase tracking-wider text-xs">${i.ACESSO}</td>
+                        <td class="p-4">
+                            <a href="${i.LINK}" target="_blank" class="text-blue-400 link-hover flex items-center gap-2">
+                                🌐 Acessar Link Externo
+                            </a>
+                        </td>
+                    </tr>`;
+            });
         }
 
         document.getElementById('month-filter').onchange = (e) => render(e.target.value);
         
         if(URL_AGENDA.startsWith('http')) loadAll();
-        else alert("Atenção: Insira os links CSV dentro das aspas no código!");
     </script>
 </body>
 </html>
