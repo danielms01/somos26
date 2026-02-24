@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento Regional CE RN PB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        select { background-color: #1e293b; border: 1px solid #334155; color: white; }
+        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-400">Acompanhamento Regional CE RN PB</h1>
+                <p class="text-slate-400">Dashboard Estratégico de Eventos e Consultoria</p>
+            </div>
+            
+            <div class="flex items-center gap-3 glass-card p-4 rounded-xl">
+                <label for="month-filter" class="font-semibold text-blue-300">Filtrar por Mês:</label>
+                <select id="month-filter" class="rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="Todos">Todos os Meses</option>
+                    </select>
+            </div>
+        </header>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+            
+            <section class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-blue-600/20 p-4 border-b border-slate-700">
+                    <h2 class="text-xl font-bold flex items-center gap-2">📅 Agenda Mensal</h2>
+                </div>
+                <div class="p-4 overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Cidade</th>
+                                <th class="p-3">Consultor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-agenda" class="text-sm">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-emerald-600/20 p-4 border-b border-slate-700">
+                    <h2 class="text-xl font-bold flex items-center gap-2">🚀 Acompanhamento Evento</h2>
+                </div>
+                <div class="p-4 overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                                <th class="p-3">Evento</th>
+                                <th class="p-3">Data/Corte</th>
+                                <th class="p-3">Dias</th>
+                                <th class="p-3">Inscritos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-evento" class="text-sm">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO DOS LINKS CSV ---
+        const URL_AGENDA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2SICp2ke9xGZGk0HYnQ5Sc6gk-uBoM21tdm6kryxlyZb7Yahzon53gNyEoAN-DuJqR08vCrNBgEzM/pub?output=csv';
+        const URL_EVENTO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgIUlaVDZJXI4C04Mnm9SP6Mpjf8j1kZzKCf2ceyK1QHsXTOJS2XcETo0XcQW-YuW49pC4B-iBytVd/pub?output=csv';
+
+        let dadosAgenda = [];
+        let dadosEvento = [];
+
+        async function init() {
+            await Promise.all([
+                fetchData(URL_AGENDA, (data) => { dadosAgenda = data; }),
+                fetchData(URL_EVENTO, (data) => { dadosEvento = data; })
+            ]);
+            
+            povoarFiltroMes();
+            renderDashboards('Todos');
+        }
+
+        function fetchData(url, callback) {
+            return new Promise((resolve) => {
+                Papa.parse(url, {
+                    download: true,
+                    header: true,
+                    complete: (results) => {
+                        callback(results.data.filter(row => row.MÊS)); // Filtra linhas vazias
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        function povoarFiltroMes() {
+            const select = document.getElementById('month-filter');
+            const meses = [...new Set([...dadosAgenda.map(d => d.MÊS), ...dadosEvento.map(d => d.MÊS)])];
+            meses.sort().forEach(mes => {
+                const opt = document.createElement('option');
+                opt.value = mes;
+                opt.innerText = mes;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderDashboards(mesSelecionado) {
+            // Render Agenda
+            const agendaCorpo = document.getElementById('table-agenda');
+            agendaCorpo.innerHTML = '';
+            dadosAgenda
+                .filter(item => mesSelecionado === 'Todos' || item.MÊS === mesSelecionado)
+                .forEach(item => {
+                    agendaCorpo.innerHTML += `
+                        <tr class="border-b border-slate-800 hover:bg-slate-800/40">
+                            <td class="p-3 text-blue-300 font-mono">${item.DATA}</td>
+                            <td class="p-3">${item.CIDADE}</td>
+                            <td class="p-3 text-slate-400">${item.CONSULTOR}</td>
+                        </tr>
+                    `;
+                });
+
+            // Render Eventos
+            const eventoCorpo = document.getElementById('table-evento');
+            eventoCorpo.innerHTML = '';
+            dadosEvento
+                .filter(item => mesSelecionado === 'Todos' || item.MÊS === mesSelecionado)
+                .forEach(item => {
+                    eventoCorpo.innerHTML += `
+                        <tr class="border-b border-slate-800 hover:bg-slate-800/40">
+                            <td class="p-3 font-bold text-emerald-400">${item.EVENTO}</td>
+                            <td class="p-3 text-xs text-slate-400">${item.DATA}<br><span class="text-orange-400">Corte: ${item["DATA DE CORTE"]}</span></td>
+                            <td class="p-3 font-mono">${item["DIAS PARA O EVENTO"]}</td>
+                            <td class="p-3"><span class="bg-emerald-900 text-emerald-200 px-3 py-1 rounded-full">${item.INSCRITOS}</span></td>
+                        </tr>
+                    `;
+                });
+        }
+
+        document.getElementById('month-filter').addEventListener('change', (e) => {
+            renderDashboards(e.target.value);
